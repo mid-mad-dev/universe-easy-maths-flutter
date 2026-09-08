@@ -50,6 +50,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
+
+# Local workspace metadata
+.freebuff/repo_create.json
 
 # Widget Preview related
 .widget_preview/

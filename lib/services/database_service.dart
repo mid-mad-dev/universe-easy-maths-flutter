@@ -1,10 +1,12 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/app_constants.dart';
 
 import '../models/chapter.dart';
 import '../models/course.dart';
 import '../models/lesson.dart';
 import '../models/profile.dart';
 import '../models/question.dart';
+import 'storage_service.dart';
 
 class DatabaseService {
   SupabaseClient get supabase => Supabase.instance.client;
@@ -125,7 +127,16 @@ class DatabaseService {
         .select('*, chapters(*), lessons(*)')
         .eq('user_id', id)
         .order('created_at', ascending: false);
-    return (data as List).map((e) => Map<String, dynamic>.from(e)).toList();
+    final rows = (data as List).map((e) => Map<String, dynamic>.from(e)).toList();
+    final storage = StorageService();
+    for (final row in rows) {
+      final raw = row['image_url']?.toString();
+      if (raw != null && raw.isNotEmpty) {
+        final url = await storage.imageUrl(AppConstants.doubtBucket, raw);
+        if (url != null) row['image_url'] = url;
+      }
+    }
+    return rows;
   }
 
   Future<void> createQuestion({

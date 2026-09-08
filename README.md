@@ -1,17 +1,24 @@
-# universe_easy_maths
+# Universe Easy Maths
 
-A new Flutter project.
+Flutter learning app with courses, lessons, progress tracking, payments, and a Supabase-backed doubt corner.
 
-## Getting Started
+## Run locally
 
-This project is a starting point for a Flutter application.
+1. Install Flutter and Android Studio.
+2. Run `flutter pub get`.
+3. Start the app with `flutter run`.
+4. On a fresh device, enter the Supabase project URL and publishable key in the first-run setup screen.
 
-A few resources to get you started if this is your first Flutter project:
+The real `assets/env.json` is intentionally ignored so it is not published with the source. The app can also be configured on-device from the first-run screen.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Build an APK
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```powershell
+flutter build apk --release
+```
+
+The APK is written to `build/app/outputs/flutter-apk/app-release.apk`.
+
+## Supabase setup
+
+Run the SQL files in `supabase/` in order for a new project. For an existing project, also run `supabase/03_questions_permissions.sql` to restore doubt operation privileges.

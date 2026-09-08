@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../core/app_colors.dart';
 import '../../services/admin_service.dart';
@@ -49,27 +50,21 @@ class _AdminQuestionsState extends State<AdminQuestions> {
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(
-            row['answered'] == true
-                ? 'EDIT ANSWER'
-                : 'ANSWER QUESTION',
+            row['answered'] == true ? 'EDIT ANSWER' : 'ANSWER QUESTION',
           ),
           content: TextField(
             controller: controller,
             minLines: 5,
             maxLines: 10,
-            decoration: const InputDecoration(
-              labelText: 'Answer',
-            ),
+            decoration: const InputDecoration(labelText: 'Answer'),
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, false),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('CANCEL'),
             ),
             ElevatedButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, true),
+              onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text('SAVE'),
             ),
           ],
@@ -95,9 +90,8 @@ class _AdminQuestionsState extends State<AdminQuestions> {
       await load();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Answer failed: $error')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Answer failed: $error')));
     }
   }
 
@@ -107,18 +101,14 @@ class _AdminQuestionsState extends State<AdminQuestions> {
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('DELETE QUESTION?'),
-          content: const Text(
-            'Delete this question and its answer?',
-          ),
+          content: const Text('Delete this question and its answer?'),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, false),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('CANCEL'),
             ),
             ElevatedButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, true),
+              onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text('DELETE'),
             ),
           ],
@@ -133,10 +123,74 @@ class _AdminQuestionsState extends State<AdminQuestions> {
       await load();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Delete failed: $error')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Delete failed: $error')));
     }
+  }
+
+  Future<void> removeAnswer(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('DELETE ANSWER?'),
+          content: const Text(
+            'Remove the admin answer and leave the doubt open?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('CANCEL'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('DELETE'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await service.deleteAnswer(id);
+      await load();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Answer delete failed: $error')));
+    }
+  }
+
+  void _showImage(String url) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4,
+              child: CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+              ),
+            ),
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close, color: Colors.white, size: 32),
+              padding: const EdgeInsets.all(12),
+              alignment: Alignment.topRight,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -152,128 +206,157 @@ class _AdminQuestionsState extends State<AdminQuestions> {
       body: AppBackground(
         child: loading
             ? const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.lime,
-                ),
+                child: CircularProgressIndicator(color: AppColors.lime),
               )
             : rows.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No questions yet.',
-                      style: TextStyle(
-                        color: AppColors.secondaryText,
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: rows.length,
-                    itemBuilder: (context, index) {
-                      final row = rows[index];
-                      final student = row['student'] is Map
-                          ? Map<String, dynamic>.from(
-                              row['student'],
-                            )
-                          : <String, dynamic>{};
+            ? const Center(
+                child: Text(
+                  'No questions yet.',
+                  style: TextStyle(color: AppColors.secondaryText),
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: rows.length,
+                itemBuilder: (context, index) {
+                  final row = rows[index];
+                  final student = row['student'] is Map
+                      ? Map<String, dynamic>.from(row['student'])
+                      : <String, dynamic>{};
 
-                      final answered =
-                          row['answered'] == true;
+                  final answered = row['answered'] == true;
 
-                      return Card(
-                        margin:
-                            const EdgeInsets.only(bottom: 12),
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                student['name']?.toString() ??
-                                    'Student',
-                                style: const TextStyle(
-                                  color: AppColors.lime,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                student['email']?.toString() ??
-                                    '',
-                                style: const TextStyle(
-                                  color:
-                                      AppColors.secondaryText,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                row['question']?.toString() ??
-                                    '',
-                                style: const TextStyle(
-                                  color: AppColors.text,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                answered
-                                    ? '✓ ANSWERED'
-                                    : 'WAITING FOR ANSWER',
-                                style: TextStyle(
-                                  color: answered
-                                      ? AppColors.cyan
-                                      : AppColors.warning,
-                                  fontWeight:
-                                      FontWeight.w900,
-                                ),
-                              ),
-                              if (answered &&
-                                  row['answer'] != null) ...[
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Answer: ${row['answer']}',
-                                  style: const TextStyle(
-                                    color:
-                                        AppColors.secondaryText,
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 14),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () =>
-                                          answer(row),
-                                      child: Text(
-                                        answered
-                                            ? 'EDIT ANSWER'
-                                            : 'ANSWER',
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            student['name']?.toString() ?? 'Student',
+                            style: const TextStyle(
+                              color: AppColors.lime,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            student['email']?.toString() ?? '',
+                            style: const TextStyle(
+                              color: AppColors.secondaryText,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            row['question']?.toString() ?? '',
+                            style: const TextStyle(
+                              color: AppColors.text,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          if (row['image_url'] != null &&
+                              (row['image_url'] as String).isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: GestureDetector(
+                                onTap: () =>
+                                    _showImage(row['image_url'] as String),
+                                child: CachedNetworkImage(
+                                  imageUrl: row['image_url'] as String,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: 200,
+                                  placeholder: (context, url) => const SizedBox(
+                                    height: 200,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.lime,
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
-                                  IconButton(
-                                    onPressed: () =>
-                                        removeQuestion(
-                                      row['id'].toString(),
-                                    ),
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      color: AppColors.error,
+                                  errorWidget: (context, url, error) =>
+                                      const SizedBox(
+                                        height: 200,
+                                        child: Center(
+                                          child: Text(
+                                            'Could not load image.',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 10),
+                          Text(
+                            answered ? '✓ ANSWERED' : 'WAITING FOR ANSWER',
+                            style: TextStyle(
+                              color: answered
+                                  ? AppColors.cyan
+                                  : AppColors.warning,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          if (answered && row['answer'] != null) ...[
+                            const SizedBox(height: 10),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Answer: ${row['answer']}',
+                                    style: const TextStyle(
+                                      color: AppColors.secondaryText,
                                     ),
                                   ),
-                                ],
+                                ),
+                                IconButton(
+                                  tooltip: 'Delete answer',
+                                  onPressed: () =>
+                                      removeAnswer(row['id'].toString()),
+                                  icon: const Icon(
+                                    Icons.remove_circle_outline,
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () => answer(row),
+                                  child: Text(
+                                    answered ? 'EDIT ANSWER' : 'ANSWER',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              IconButton(
+                                onPressed: () =>
+                                    removeQuestion(row['id'].toString()),
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: AppColors.error,
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
       ),
     );
   }

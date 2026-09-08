@@ -74,6 +74,22 @@ class StorageService {
     int expiresIn = 3600,
   }) => supabase.storage.from(bucket).createSignedUrl(path, expiresIn);
 
+  /// Returns a URL that can be used to display the image in a UI.
+  ///
+  /// If [path] is already an http(s) URL it is returned as-is. Otherwise the
+  /// path is signed so the current user can view it (the bucket policies must
+  /// grant read access for the result to work).
+  Future<String?> imageUrl(String bucket, String path) async {
+    final raw = path.trim();
+    if (raw.isEmpty) return null;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+    try {
+      return await supabase.storage.from(bucket).createSignedUrl(raw, 3600);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> remove(String bucket, String path) async {
     if (path.trim().isEmpty) return;
     await supabase.storage.from(bucket).remove([path]);

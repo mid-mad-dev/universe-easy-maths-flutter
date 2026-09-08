@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../core/app_colors.dart';
 import '../services/database_service.dart';
 import '../services/storage_service.dart';
@@ -59,6 +60,26 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
     try { await db.deleteOwnQuestion(id); await load(); } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not delete: $e'))); }
   }
 
+  void _showImage(String url) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              minScale: 0.5, maxScale: 4, child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain, width: double.infinity, height: double.infinity),
+            ),
+            IconButton(
+              onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.white, size: 32),
+              padding: const EdgeInsets.all(12), alignment: Alignment.topRight,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,6 +96,24 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
               Row(children: [Expanded(child: Text('${q['question'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))), IconButton(onPressed: () => deleteQuestion('${q['id']}'), icon: const Icon(Icons.delete_outline, color: AppColors.error))]),
               const SizedBox(height: 10),
               Text(answered ? 'ANSWERED' : 'WAITING FOR ANSWER', style: TextStyle(color: answered ? AppColors.teal : AppColors.warning, fontWeight: FontWeight.w800, fontSize: 11)),
+              if (q['image_url'] != null && (q['image_url'] as String).isNotEmpty) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: GestureDetector(
+                    onTap: () => _showImage(q['image_url'] as String),
+                    child: CachedNetworkImage(
+                      imageUrl: q['image_url'] as String,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 220,
+                      placeholder: (context, url) => const SizedBox(height: 220, child: Center(child: CircularProgressIndicator(color: AppColors.purple))),
+                      errorWidget: (context, url, error) => const SizedBox(height: 220, child: Center(child: Text('Could not load image.', style: TextStyle(color: Colors.white70))))
+                    ),
+                  ),
+                ),
+              ],
+
               if (answered) ...[const SizedBox(height: 10), Container(width: double.infinity, padding: const EdgeInsets.all(13), decoration: BoxDecoration(color: AppColors.lightTeal, borderRadius: BorderRadius.circular(12)), child: Text('${q['answer'] ?? ''}'))],
             ])));
           },
