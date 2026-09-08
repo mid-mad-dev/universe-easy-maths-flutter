@@ -54,8 +54,9 @@ class _AdminQuestionsState extends State<AdminQuestions> {
           ),
           content: TextField(
             controller: controller,
-            minLines: 5,
-            maxLines: 10,
+            maxLines: 1,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => Navigator.pop(dialogContext, true),
             decoration: const InputDecoration(labelText: 'Answer'),
           ),
           actions: [
@@ -77,7 +78,7 @@ class _AdminQuestionsState extends State<AdminQuestions> {
       return;
     }
 
-    final text = controller.text.trim();
+    final text = controller.text.trim().replaceAll(RegExp(r'\s+'), ' ');
     controller.dispose();
 
     if (text.isEmpty) return;

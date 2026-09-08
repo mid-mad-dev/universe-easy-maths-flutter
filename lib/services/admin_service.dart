@@ -82,7 +82,7 @@ class AdminService {
     await supabase
         .from('questions')
         .update({
-          'answer': answer.trim(),
+          'answer': answer.trim().replaceAll(RegExp(r'\s+'), ' '),
           'answered': true,
           'teacher_admin_id': supabase.auth.currentUser?.id,
           'updated_at': DateTime.now().toIso8601String(),

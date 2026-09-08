@@ -33,7 +33,7 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
         builder: (context, setDialog) => AlertDialog(
           title: const Text('ASK A DOUBT'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(controller: text, maxLines: 5, decoration: const InputDecoration(hintText: 'Write your question...')),
+            TextField(controller: text, maxLines: 1, textInputAction: TextInputAction.done, onSubmitted: (_) => Navigator.pop(context, true), decoration: const InputDecoration(hintText: 'Write your question...')),
             const SizedBox(height: 10),
             Row(children: [
               Expanded(child: Text(image == null ? 'No image attached.' : image!.name, overflow: TextOverflow.ellipsis)),
@@ -44,11 +44,12 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
         ),
       ),
     );
-    if (result != true || text.text.trim().isEmpty) return;
+    final question = text.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (result != true || question.isEmpty) return;
     try {
       String? imagePath;
       if (image != null) imagePath = await storage.uploadDoubtImage(image!);
-      await db.createQuestion(text: text.text, imagePath: imagePath);
+      await db.createQuestion(text: question, imagePath: imagePath);
       await load();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Doubt submitted.')));
     } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not submit doubt: $e'))); }

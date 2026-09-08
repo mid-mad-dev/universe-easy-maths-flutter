@@ -149,7 +149,7 @@ class DatabaseService {
     if (id == null) throw Exception('Please login first.');
     await supabase.from('questions').insert({
       'user_id': id,
-      'question': text.trim(),
+      'question': text.trim().replaceAll(RegExp(r'\s+'), ' '),
       'chapter_id': chapterId,
       'lesson_id': lessonId,
       'image_url': imagePath,
