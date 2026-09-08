@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../core/app_constants.dart';
 
 import '../models/chapter.dart';
@@ -127,7 +128,9 @@ class DatabaseService {
         .select('*, chapters(*), lessons(*)')
         .eq('user_id', id)
         .order('created_at', ascending: false);
-    final rows = (data as List).map((e) => Map<String, dynamic>.from(e)).toList();
+    final rows = (data as List)
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
     final storage = StorageService();
     for (final row in rows) {
       final raw = row['image_url']?.toString();
