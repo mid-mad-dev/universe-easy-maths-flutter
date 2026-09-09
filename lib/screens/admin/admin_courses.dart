@@ -203,8 +203,15 @@ class _AdminCoursesState extends State<AdminCourses> {
       ),
     );
     if (ok != true) return;
-    await service.deleteCourse(id);
-    await load();
+    try {
+      await service.deleteCourse(id);
+      await load();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Course could not be deleted.')),
+      );
+    }
   }
 
   @override
