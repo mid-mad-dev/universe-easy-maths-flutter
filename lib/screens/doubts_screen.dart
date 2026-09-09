@@ -27,11 +27,12 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
   Future<void> load() async {
     try {
       final r = await db.getMyQuestions();
-      if (mounted)
+      if (mounted) {
         setState(() {
           questions = r;
           loading = false;
         });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => loading = false);
@@ -103,14 +104,16 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
       if (image != null) imagePath = await storage.uploadDoubtImage(image!);
       await db.createQuestion(text: question, imagePath: imagePath);
       await load();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Doubt submitted.')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Could not submit doubt: $e')));
+      }
     }
   }
 
@@ -137,9 +140,10 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
       await db.deleteOwnQuestion(id);
       await load();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Could not delete: $e')));
+      }
     }
   }
 

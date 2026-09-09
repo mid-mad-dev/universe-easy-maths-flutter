@@ -66,9 +66,9 @@ class _FirstRunConfigScreenState extends State<FirstRunConfigScreen> {
   }
 
   Future<void> _writeEnv(Map<String, dynamic> payload) async {
-    final encode = const JsonEncoder.withIndent('  ').convert(payload) + '\n';
+    final encode = '${const JsonEncoder.withIndent('  ').convert(payload)}\n';
     final documents = await getApplicationDocumentsDirectory();
-    final file = File('${documents.path}/env.json');
+    final file = File('${documents.path}${Platform.pathSeparator}env.json');
     await file.writeAsString(encode);
   }
 
