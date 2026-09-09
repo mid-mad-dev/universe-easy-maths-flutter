@@ -88,10 +88,38 @@ class AdminService {
           'updated_at': DateTime.now().toIso8601String(),
         })
         .eq('id', questionId);
+
+    // Best-effort push to the student's devices; ignore failures so the
+    // in-app flow never breaks because of push problems.
+    try {
+      await supabase.functions.invoke(
+        'send-doubt-push',
+        body: {'question_id': questionId, 'event': 'answered'},
+      );
+    } catch (_) {}
   }
 
   Future<void> deleteQuestion(String questionId) async {
-    await supabase.from('questions').delete().eq('id', questionId);
+    // Best-effort storage cleanup for the doubt image, then delete the row.
+    // The FK now cascades notifications/push tokens cleanup via DB.
+    try {
+      final row = await supabase
+          .from('questions')
+          .select('image_url')
+          .eq('id', questionId)
+          .maybeSingle();
+      final imagePath = row?['image_url']?.toString();
+      if (imagePath != null && imagePath.isNotEmpty) {
+        await StorageService().remove(AppConstants.doubtBucket, imagePath);
+      }
+    } catch (_) {}
+
+    final result = await supabase.from('questions').delete().eq('id', questionId);
+
+    final error = result is Map ? result['error'] : null;
+    if (error != null) {
+      throw Exception(error.toString());
+    }
   }
 
   Future<void> deleteAnswer(String questionId) async {
@@ -411,6 +439,10 @@ class AdminService {
       path = path.substring('sign/$bucketSlash'.length);
     if (path.startsWith('authenticated/$bucketSlash'))
       path = path.substring('authenticated/$bucketSlash'.length);
+    final queryIndex = path.indexOf('?');
+    if (queryIndex >= 0) path = path.substring(0, queryIndex);
+    final fragmentIndex = path.indexOf('#');
+    if (fragmentIndex >= 0) path = path.substring(0, fragmentIndex);
     return path;
   }
 }

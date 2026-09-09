@@ -11,10 +11,32 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final service = NotificationService();
   List<Map<String, dynamic>> rows = [];
+  bool loading = true;
+  String? error;
 
   @override
-  void initState() { super.initState(); load(); }
-  Future<void> load() async { rows = await service.listMine(); if (mounted) setState(() {}); }
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  Future<void> load() async {
+    try {
+      final result = await service.listMine();
+      if (!mounted) return;
+      setState(() {
+        rows = result;
+        loading = false;
+        error = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        error = 'Notifications are temporarily unavailable.';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +46,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: const Text('NOTIFICATIONS', style: TextStyle(fontWeight: FontWeight.w900)),
         actions: [IconButton(onPressed: () async { await service.markAllRead(); await load(); }, icon: const Icon(Icons.done_all))],
       ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
+      body: loading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.purple))
+          : error != null
+          ? Center(child: Text(error!))
+          : StreamBuilder<List<Map<String, dynamic>>>(
         stream: service.streamMine(),
         builder: (context, snapshot) {
           final data = snapshot.hasData ? snapshot.data! : rows;
