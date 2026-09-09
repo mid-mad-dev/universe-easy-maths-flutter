@@ -117,13 +117,15 @@ Deno.serve(async (req) => {
     const stored = lesson.video_url?.toString().trim() ?? '';
     if (!stored) return json({ url: null });
 
+    // Lesson videos must stay in the private bucket. Never proxy arbitrary
+    // public URLs because that would bypass access checks and expiry.
     if (stored.startsWith('http://') || stored.startsWith('https://')) {
-      return json({ url: stored });
+      return json({ error: 'Lesson video must use private storage.' }, 400);
     }
 
     const { data, error } = await supabase.storage
       .from('lesson-videos')
-      .createSignedUrl(stored, 3600);
+      .createSignedUrl(stored, 300);
 
     if (error) throw error;
 

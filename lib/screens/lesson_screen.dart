@@ -146,15 +146,7 @@ class _LessonScreenState extends State<LessonScreen> {
       primaryError = e;
     }
 
-    // Fallback for setups where the edge function is not deployed: sign the
-    // path directly when the storage policy allows it.
-    try {
-      return await Supabase.instance.client.storage
-          .from('lesson-videos')
-          .createSignedUrl(stored, 3600);
-    } catch (_) {
-      throw Exception('Could not load the video: $primaryError');
-    }
+    throw Exception('Could not load the video: $primaryError');
   }
 
   Future<void> _watchProgress() async {

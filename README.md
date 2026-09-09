@@ -22,3 +22,24 @@ The APK is written to `build/app/outputs/flutter-apk/app-release.apk`.
 ## Supabase setup
 
 Run the SQL files in `supabase/` in order for a new project. For an existing project, also run `supabase/03_questions_permissions.sql` to restore doubt operation privileges.
+
+Deploy the protected video function with the Supabase CLI:
+
+```powershell
+supabase functions deploy get-lesson-url
+```
+
+Keep the `lesson-videos` bucket private. The app and web build use the same Supabase project, so lessons, doubts, answers, profiles, and progress stay synchronized across platforms.
+
+## GitHub Pages web deployment
+
+The workflow in `.github/workflows/deploy-web.yml` deploys the web app after every push to `main`. Add these repository secrets before enabling Pages:
+
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+
+In GitHub, open **Settings > Pages** and set the source to **GitHub Actions**. The deployed site will be available at:
+
+`https://mid-mad-dev.github.io/universe-easy-maths-flutter/`
+
+Video playback is access-controlled through the `get-lesson-url` function and short-lived signed URLs. No client can be guaranteed to prevent screen recording, but direct public video URLs are rejected.
