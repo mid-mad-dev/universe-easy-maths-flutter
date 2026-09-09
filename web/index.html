@@ -42,5 +42,11 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Discourage casual saving of streamed lesson videos in the web client.
+    document.addEventListener('contextmenu', function (event) {
+      event.preventDefault();
+    });
+  </script>
 </body>
 </html>

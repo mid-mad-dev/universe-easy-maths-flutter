@@ -29,7 +29,7 @@ Deploy the protected video function with the Supabase CLI:
 supabase functions deploy get-lesson-url
 ```
 
-Keep the `lesson-videos` bucket private. The app and web build use the same Supabase project, so lessons, doubts, answers, profiles, and progress stay synchronized across platforms.
+Keep the `lesson-videos` bucket private. The app and web build use the same Supabase project, so lessons, doubts, answers, profiles, uploads, and progress are shared across platforms. Reopen or refresh the other client after a change to fetch the latest data.
 
 ## GitHub Pages web deployment
 
@@ -42,4 +42,4 @@ In GitHub, open **Settings > Pages** and set the source to **GitHub Actions**. T
 
 `https://mid-mad-dev.github.io/universe-easy-maths-flutter/`
 
-Video playback is access-controlled through the `get-lesson-url` function and short-lived signed URLs. No client can be guaranteed to prevent screen recording, but direct public video URLs are rejected.
+Video playback is access-controlled through the `get-lesson-url` function and short-lived signed URLs. The web client blocks the context menu, but no browser can guarantee prevention of developer tools, downloads, or screen recording; direct public video URLs are rejected.

@@ -47,8 +47,9 @@ class _BootstrapAppState extends State<_BootstrapApp> {
 
       if (mounted) setState(() => screen = const UniverseEasyMathsApp());
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() => screen = _StartupErrorApp(onRetry: initialize));
+      }
     }
   }
 
