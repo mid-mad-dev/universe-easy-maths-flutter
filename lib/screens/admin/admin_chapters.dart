@@ -34,7 +34,7 @@ class _AdminChaptersState extends State<AdminChapters> {
       if (!mounted) return;
       setState(() => loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not load chapters: $error')),
+        const SnackBar(content: Text('Could not load chapters right now.')),
       );
     }
   }
@@ -174,8 +174,9 @@ class _AdminChaptersState extends State<AdminChapters> {
       await load();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Save failed: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chapter could not be saved.')),
+      );
     } finally {
       name.dispose();
       number.dispose();
@@ -193,8 +194,9 @@ class _AdminChaptersState extends State<AdminChapters> {
       await load();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Delete failed: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chapter could not be deleted.')),
+      );
     }
   }
 

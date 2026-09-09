@@ -114,7 +114,10 @@ class AdminService {
       }
     } catch (_) {}
 
-    final result = await supabase.from('questions').delete().eq('id', questionId);
+    final result = await supabase
+        .from('questions')
+        .delete()
+        .eq('id', questionId);
 
     final error = result is Map ? result['error'] : null;
     if (error != null) {
@@ -408,8 +411,9 @@ class AdminService {
 
   Future<void> _invokeUserFunction(Map<String, dynamic> body) async {
     final response = await supabase.functions.invoke('manage-user', body: body);
-    if (response.status >= 400)
+    if (response.status >= 400) {
       throw Exception(response.data?.toString() ?? 'Server operation failed.');
+    }
   }
 
   Future<void> _removeStorageValue(String bucket, dynamic value) async {
@@ -424,21 +428,25 @@ class AdminService {
   String? _extractPath(String raw, String bucket) {
     final value = raw.trim();
     if (value.isEmpty) return null;
-    if (!value.contains('/storage/v1/'))
+    if (!value.contains('/storage/v1/')) {
       return value.startsWith('$bucket/')
           ? value.substring(bucket.length + 1)
           : value;
+    }
     final marker = '/object/';
     final index = value.indexOf(marker);
     if (index < 0) return null;
     var path = value.substring(index + marker.length);
     final bucketSlash = '$bucket/';
-    if (path.startsWith('public/$bucketSlash'))
+    if (path.startsWith('public/$bucketSlash')) {
       path = path.substring('public/$bucketSlash'.length);
-    if (path.startsWith('sign/$bucketSlash'))
+    }
+    if (path.startsWith('sign/$bucketSlash')) {
       path = path.substring('sign/$bucketSlash'.length);
-    if (path.startsWith('authenticated/$bucketSlash'))
+    }
+    if (path.startsWith('authenticated/$bucketSlash')) {
       path = path.substring('authenticated/$bucketSlash'.length);
+    }
     final queryIndex = path.indexOf('?');
     if (queryIndex >= 0) path = path.substring(0, queryIndex);
     final fragmentIndex = path.indexOf('#');

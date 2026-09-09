@@ -87,9 +87,9 @@ class _AdminLessonsState extends State<AdminLessons> {
     } catch (error) {
       if (!mounted) return;
       setState(() => loading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Could not load lessons: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not load lessons right now.')),
+      );
     }
   }
 
@@ -348,7 +348,7 @@ class _AdminLessonsState extends State<AdminLessons> {
       _message(row == null ? 'Lesson created.' : 'Lesson updated.');
     } catch (error) {
       if (!mounted) return;
-      _message('Save failed: $error');
+      _message('Lesson could not be saved. Check the video and try again.');
     } finally {
       if (mounted) {
         setState(() => saving = false);
@@ -374,8 +374,9 @@ class _AdminLessonsState extends State<AdminLessons> {
       await load();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Delete failed: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lesson could not be deleted.')),
+      );
     }
   }
 

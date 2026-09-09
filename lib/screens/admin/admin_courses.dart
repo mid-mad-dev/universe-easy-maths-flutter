@@ -32,9 +32,9 @@ class _AdminCoursesState extends State<AdminCourses> {
     } catch (e) {
       if (mounted) {
         setState(() => loading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not load courses: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load courses right now.')),
+        );
       }
     }
   }
@@ -101,31 +101,50 @@ class _AdminCoursesState extends State<AdminCourses> {
 
     if (ok != true || name.text.trim().isEmpty) return;
     final value = double.tryParse(price.text.trim()) ?? 0;
-    if (row == null) {
-      await service.createCourse(
-        name: name.text,
-        description: description.text,
-        price: value,
-        premium: premium,
-        published: published,
-      );
-    } else {
-      await service.updateCourse(
-        id: '${row['id']}',
-        name: name.text,
-        description: description.text,
-        price: value,
-        premium: premium,
-        published: published,
-      );
+    try {
+      if (row == null) {
+        await service.createCourse(
+          name: name.text,
+          description: description.text,
+          price: value,
+          premium: premium,
+          published: published,
+        );
+      } else {
+        await service.updateCourse(
+          id: '${row['id']}',
+          name: name.text,
+          description: description.text,
+          price: value,
+          premium: premium,
+          published: published,
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Course could not be saved.')),
+        );
+      }
+      return;
     }
     await load();
   }
 
   Future<void> assignChapters(Map<String, dynamic> course) async {
-    final all = await service.getChapters();
-    final selected = (await service.getCourseChapterIds('${course['id']}'))
-        .toSet();
+    late final List<Map<String, dynamic>> all;
+    late final Set<String> selected;
+    try {
+      all = await service.getChapters();
+      selected = (await service.getCourseChapterIds('${course['id']}')).toSet();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load chapter assignments.')),
+        );
+      }
+      return;
+    }
     if (!mounted) return;
     final result = await showDialog<List<String>>(
       context: context,
@@ -174,11 +193,21 @@ class _AdminCoursesState extends State<AdminCourses> {
       },
     );
     if (result == null) return;
-    await service.setCourseChapters('${course['id']}', result);
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Course chapters updated.')));
+    try {
+      await service.setCourseChapters('${course['id']}', result);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Course chapters updated.')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Chapter assignments could not be saved.'),
+          ),
+        );
+      }
     }
   }
 
