@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/app_colors.dart';
 
 class AppButton extends StatelessWidget {
@@ -6,12 +7,25 @@ class AppButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool loading;
   final bool secondary;
-  const AppButton({super.key, required this.label, this.onPressed, this.loading = false, this.secondary = false});
+  const AppButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.loading = false,
+    this.secondary = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final content = loading
-        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+        ? SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: secondary ? AppColors.purple : const Color(0xFF08120A),
+            ),
+          )
         : Text(label);
     if (secondary) {
       return SizedBox(
@@ -34,7 +48,10 @@ class AppButton extends StatelessWidget {
     return SizedBox(
       height: 52,
       width: double.infinity,
-      child: ElevatedButton(onPressed: loading ? null : onPressed, child: content),
+      child: ElevatedButton(
+        onPressed: loading ? null : onPressed,
+        child: content,
+      ),
     );
   }
 }

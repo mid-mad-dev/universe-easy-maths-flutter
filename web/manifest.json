@@ -1,11 +1,11 @@
 {
-    "name": "universe_easy_maths",
-    "short_name": "universe_easy_maths",
+    "name": "Universe Easy Maths",
+    "short_name": "Easy Maths",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#070C20",
+    "theme_color": "#070C20",
+    "description": "Maths, but in 60-second bites.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

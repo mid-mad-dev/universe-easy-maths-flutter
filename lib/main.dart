@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/app_colors.dart';
 import 'core/app_constants.dart';
 import 'core/app_theme.dart';
+import 'services/push_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/first_run_config_screen.dart';
 
@@ -44,6 +47,10 @@ class _BootstrapAppState extends State<_BootstrapApp> {
         url: config.url,
         publishableKey: config.publishableKey,
       ).timeout(const Duration(seconds: 15));
+
+      // Fire-and-forget: push must never block or break app startup.
+      // No-op on web/desktop or when the build has no Firebase config.
+      unawaited(PushService.instance.initialize());
 
       if (mounted) setState(() => screen = const UniverseEasyMathsApp());
     } catch (_) {
@@ -98,7 +105,9 @@ class _FirstRunApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: AppConstants.appName,
       theme: AppTheme.dark,
-      home: const FirstRunConfigScreen(),
+      home: FirstRunConfigScreen(
+        onConfigurationSaved: () => runApp(const _BootstrapApp()),
+      ),
     );
   }
 }

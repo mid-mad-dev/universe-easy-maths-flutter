@@ -1,13 +1,11 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../core/app_constants.dart';
-import '../core/app_theme.dart';
 
 class FirstRunConfigScreen extends StatefulWidget {
-  const FirstRunConfigScreen({super.key});
+  final VoidCallback? onConfigurationSaved;
+
+  const FirstRunConfigScreen({super.key, this.onConfigurationSaved});
 
   @override
   State<FirstRunConfigScreen> createState() => _FirstRunConfigScreenState();
@@ -44,38 +42,25 @@ class _FirstRunConfigScreenState extends State<FirstRunConfigScreen> {
     setState(() => _saving = true);
 
     try {
-      await _writeEnv({
-        'version': 1,
-        'endpoints': [
-          {
-            'name': 'main',
-            'url': _urlController.text.trim(),
-            'publishableKey': _keyController.text.trim(),
-          }
-        ]
-      });
+      await AppConstants.save(
+        Config(
+          url: _urlController.text.trim(),
+          publishableKey: _keyController.text.trim(),
+        ),
+      );
 
-      // Restart so the app re-reads the freshly written config and
-      // initializes Supabase with the new values.
-      _restartApp();
+      // Re-run the bootstrap so Supabase is initialized from saved config.
+      final onConfigurationSaved = widget.onConfigurationSaved;
+      if (onConfigurationSaved != null) {
+        onConfigurationSaved();
+      } else if (mounted) {
+        setState(() => _saving = false);
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
       _showError('Could not save config: ${error.toString()}');
     }
-  }
-
-  Future<void> _writeEnv(Map<String, dynamic> payload) async {
-    final encode = '${const JsonEncoder.withIndent('  ').convert(payload)}\n';
-    final documents = await getApplicationDocumentsDirectory();
-    final file = File('${documents.path}${Platform.pathSeparator}env.json');
-    await file.writeAsString(encode);
-  }
-
-  void _restartApp() {
-    // Re-build the first-run app so it re-reads the freshly written env
-    // from getApplicationDocumentsDirectory and initializes Supabase.
-    runApp(const _FirstRunApp());
   }
 
   void _showError(String message) {
@@ -115,81 +100,84 @@ class _FirstRunConfigScreenState extends State<FirstRunConfigScreen> {
               ),
               const SizedBox(height: 24),
               Expanded(
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 8),
-                      _buildSectionHeader(context, 'Supabase project'),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _urlController,
-                        decoration: const InputDecoration(
-                          labelText: 'Supabase project URL',
-                          hintText: 'https://your-project.supabase.co',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.cloud_outlined),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 8),
+                        _buildSectionHeader(context, 'Supabase project'),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _urlController,
+                          decoration: const InputDecoration(
+                            labelText: 'Supabase project URL',
+                            hintText: 'https://your-project.supabase.co',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.cloud_outlined),
+                          ),
+                          keyboardType: TextInputType.url,
+                          textInputAction: TextInputAction.next,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (value) {
+                            final v = value?.trim() ?? '';
+                            if (v.isEmpty) {
+                              return 'URL is required.';
+                            }
+                            if (!v.startsWith('https://')) {
+                              return 'URL must start with https://';
+                            }
+                            if (v.startsWith('YOUR_')) {
+                              return 'Replace the placeholder value.';
+                            }
+                            return null;
+                          },
                         ),
-                        keyboardType: TextInputType.url,
-                        textInputAction: TextInputAction.next,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        validator: (value) {
-                          final v = value?.trim() ?? '';
-                          if (v.isEmpty) {
-                            return 'URL is required.';
-                          }
-                          if (!v.startsWith('https://')) {
-                            return 'URL must start with https://';
-                          }
-                          if (v.startsWith('YOUR_')) {
-                            return 'Replace the placeholder value.';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _keyController,
-                        decoration: const InputDecoration(
-                          labelText: 'Supabase publishable key',
-                          hintText: 'sb_publishable_...',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.key_outlined),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _keyController,
+                          decoration: const InputDecoration(
+                            labelText: 'Supabase publishable key',
+                            hintText: 'sb_publishable_...',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.key_outlined),
+                          ),
+                          keyboardType: TextInputType.text,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => _saveAndRestart(),
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (value) {
+                            final v = value?.trim() ?? '';
+                            if (v.isEmpty) {
+                              return 'Publishable key is required.';
+                            }
+                            if (v.startsWith('YOUR_')) {
+                              return 'Replace the placeholder value.';
+                            }
+                            return null;
+                          },
                         ),
-                        keyboardType: TextInputType.text,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _saveAndRestart(),
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        validator: (value) {
-                          final v = value?.trim() ?? '';
-                          if (v.isEmpty) {
-                            return 'Publishable key is required.';
-                          }
-                          if (v.startsWith('YOUR_')) {
-                            return 'Replace the placeholder value.';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      const Spacer(),
-                      _buildSectionHeader(context, 'Optional payment setup'),
-                      const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Text(
-                          'Razorpay payments are powered by your backend. If payments are not working, set the Razorpay key id on your Supabase project (edge functions), not here.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: surfaceVariant,
+                        const SizedBox(height: 24),
+                        const SizedBox(height: 28),
+                        _buildSectionHeader(context, 'Optional payment setup'),
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            'Razorpay payments are powered by your backend. If payments are not working, set the Razorpay key id on your Supabase project (edge functions), not here.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: surfaceVariant,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      const Spacer(),
-                      _buildActions(context),
-                      const SizedBox(height: 24),
-                    ],
+                        const SizedBox(height: 24),
+                        const SizedBox(height: 28),
+                        _buildActions(context),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -200,9 +188,7 @@ class _FirstRunConfigScreenState extends State<FirstRunConfigScreen> {
                   onPressed: _saving ? null : _resetConfig,
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('Reset config to placeholder'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: surfaceVariant,
-                  ),
+                  style: TextButton.styleFrom(foregroundColor: surfaceVariant),
                 ),
               ),
             ],
@@ -219,7 +205,8 @@ class _FirstRunConfigScreenState extends State<FirstRunConfigScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+            color: Theme.of(context).colorScheme.primary
+                .withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(14),
           ),
           alignment: Alignment.center,
@@ -236,17 +223,11 @@ class _FirstRunConfigScreenState extends State<FirstRunConfigScreen> {
             children: [
               Text(
                 'UNIVERSE EASY MATHS',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               Text(
                 'First-run setup',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF8497B3),
-                ),
+                style: TextStyle(fontSize: 13, color: Color(0xFF8497B3)),
               ),
             ],
           ),
@@ -259,9 +240,9 @@ class _FirstRunConfigScreenState extends State<FirstRunConfigScreen> {
     return Text(
       label,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
+        color: Theme.of(context).colorScheme.primary,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 
@@ -323,34 +304,11 @@ class _FirstRunConfigScreenState extends State<FirstRunConfigScreen> {
 
   Future<void> _resetConfig() async {
     try {
-      await _writeEnv({
-        'version': 1,
-        'endpoints': [
-          {
-            'name': 'main',
-            'url': 'YOUR_SUPABASE_URL',
-            'publishableKey': 'YOUR_SUPABASE_PUBLISHABLE_KEY',
-          }
-        ]
-      });
-    } catch (_) {
-      // ignore write failures during reset
+      await AppConstants.save(const Config.empty());
+      await _loadCurrent();
+      if (mounted) _showError('Config reset to placeholder values.');
+    } catch (error) {
+      if (mounted) _showError('Could not reset config: $error');
     }
-    _loadCurrent();
-    _showError('Config reset to placeholder values.');
-  }
-}
-
-class _FirstRunApp extends StatelessWidget {
-  const _FirstRunApp();
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: AppConstants.appName,
-      theme: AppTheme.dark,
-      home: const FirstRunConfigScreen(),
-    );
   }
 }

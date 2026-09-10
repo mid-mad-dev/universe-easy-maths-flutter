@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_player/video_player.dart';
 
@@ -23,6 +24,7 @@ class _LessonScreenState extends State<LessonScreen> {
   bool complete = false;
   String? error;
   bool _disposed = false;
+  bool _isFullscreen = false;
   int _loadGeneration = 0;
   double _lastSavedPercent = -10;
 
@@ -35,9 +37,36 @@ class _LessonScreenState extends State<LessonScreen> {
   @override
   void dispose() {
     _disposed = true;
+    unawaited(_restoreSystemUi());
     _disposeController();
     super.dispose();
   }
+
+  Future<void> _restoreSystemUi() async {
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.portraitUp,
+    ]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
+
+  Future<void> _setFullscreen(bool enabled) async {
+    if (_isFullscreen == enabled) return;
+
+    if (enabled) {
+      if (mounted) setState(() => _isFullscreen = true);
+      await SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      return;
+    }
+
+    await _restoreSystemUi();
+    if (mounted && !_disposed) setState(() => _isFullscreen = false);
+  }
+
+  Future<void> _toggleFullscreen() => _setFullscreen(!_isFullscreen);
 
   Future<void> _disposeController() async {
     final c = controller;
@@ -194,7 +223,9 @@ class _LessonScreenState extends State<LessonScreen> {
     if (mounted) setState(() {});
   }
 
-  void next() {
+  Future<void> next() async {
+    if (_isFullscreen) await _setFullscreen(false);
+    if (!mounted) return;
     final i = widget.lessons.indexWhere((x) => x.id == widget.lesson.id);
     if (i < 0 || i + 1 >= widget.lessons.length) {
       ScaffoldMessenger.of(context)
@@ -212,6 +243,57 @@ class _LessonScreenState extends State<LessonScreen> {
     );
   }
 
+  Widget _buildInitializedVideo(VideoPlayerController c) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Center(
+          child: AspectRatio(
+            aspectRatio: c.value.aspectRatio,
+            child: VideoPlayer(c),
+          ),
+        ),
+        if (!c.value.isPlaying)
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: const BoxDecoration(
+                color: Colors.black45,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.play_arrow,
+                size: 46,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: togglePlay,
+          ),
+        ),
+        Positioned(
+          top: 12,
+          right: 12,
+          child: Material(
+            color: Colors.black54,
+            shape: const CircleBorder(),
+            child: IconButton(
+              tooltip: _isFullscreen ? 'Exit fullscreen' : 'Play fullscreen',
+              onPressed: _toggleFullscreen,
+              icon: Icon(
+                _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildVideoArea() {
     if (initializing) {
       return const Center(
@@ -220,33 +302,7 @@ class _LessonScreenState extends State<LessonScreen> {
     }
     final c = controller;
     if (c != null && c.value.isInitialized) {
-      return GestureDetector(
-        onTap: togglePlay,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Center(
-              child: AspectRatio(
-                aspectRatio: c.value.aspectRatio,
-                child: VideoPlayer(c),
-              ),
-            ),
-            if (!c.value.isPlaying)
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: const BoxDecoration(
-                  color: Colors.black45,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.play_arrow,
-                  size: 46,
-                  color: Colors.white,
-                ),
-              ),
-          ],
-        ),
-      );
+      return _buildInitializedVideo(c);
     }
     if (error != null) {
       return Center(
@@ -288,106 +344,128 @@ class _LessonScreenState extends State<LessonScreen> {
   Widget build(BuildContext context) {
     final c = controller;
     final showProgress = c != null && c.value.isInitialized;
-    return Scaffold(
-      backgroundColor: AppColors.videoBackground,
-      appBar: AppBar(
-        title: Text('LESSON ${widget.lesson.number}'),
+    final Widget content;
+
+    if (_isFullscreen && showProgress) {
+      content = Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(child: _buildVideoArea()),
+      );
+    } else {
+      content = Scaffold(
         backgroundColor: AppColors.videoBackground,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Container(
-              color: AppColors.videoBackground,
-              child: _buildVideoArea(),
-            ),
-          ),
-          Container(
-            width: double.infinity,
-            constraints: BoxConstraints(
-              // Cap the info panel so it can never overflow the Column below
-              // the video (unbounded main axis for non-flex children).
-              maxHeight: MediaQuery.sizeOf(context).height * 0.45,
-            ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.gradientTeal,
-                  AppColors.gradientNavy,
-                  AppColors.gradientPurple,
-                ],
-                stops: [0, 0.58, 1],
+        appBar: AppBar(
+          title: Text('LESSON ${widget.lesson.number}'),
+          backgroundColor: AppColors.videoBackground,
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: Container(
+                color: AppColors.videoBackground,
+                child: _buildVideoArea(),
               ),
             ),
-            child: SafeArea(
-              top: false,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            widget.lesson.title,
-                            style: const TextStyle(
-                              fontSize: 21,
-                              fontWeight: FontWeight.w900,
+            Container(
+              width: double.infinity,
+              constraints: BoxConstraints(
+                // Cap the info panel so it can never overflow the Column below
+                // the video (unbounded main axis for non-flex children).
+                maxHeight: MediaQuery.sizeOf(context).height * 0.45,
+              ),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.gradientTeal,
+                    AppColors.gradientNavy,
+                    AppColors.gradientPurple,
+                  ],
+                  stops: [0, 0.58, 1],
+                ),
+              ),
+              child: SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              widget.lesson.title,
+                              style: const TextStyle(
+                                fontSize: 21,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ),
+                          if (complete)
+                            const Icon(
+                              Icons.check_circle,
+                              color: AppColors.teal,
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        widget.lesson.description,
+                        style: const TextStyle(color: AppColors.secondaryText),
+                      ),
+                      if (showProgress) ...[
+                        const SizedBox(height: 10),
+                        VideoProgressIndicator(
+                          c,
+                          allowScrubbing: true,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          colors: const VideoProgressColors(
+                            playedColor: AppColors.purple,
+                            bufferedColor: AppColors.border,
+                            backgroundColor: AppColors.lightPurple,
+                          ),
                         ),
-                        if (complete)
-                          const Icon(Icons.check_circle, color: AppColors.teal),
                       ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      widget.lesson.description,
-                      style: const TextStyle(color: AppColors.secondaryText),
-                    ),
-                    if (showProgress) ...[
                       const SizedBox(height: 10),
-                      VideoProgressIndicator(
-                        c,
-                        allowScrubbing: true,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        colors: const VideoProgressColors(
-                          playedColor: AppColors.purple,
-                          bufferedColor: AppColors.border,
-                          backgroundColor: AppColors.lightPurple,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: complete ? null : markComplete,
+                              child: Text(
+                                complete ? 'SEEN ✓' : 'MARK AS COMPLETE',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: next,
+                              child: const Text('NEXT LESSON →'),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: complete ? null : markComplete,
-                            child: Text(
-                              complete ? 'SEEN ✓' : 'MARK AS COMPLETE',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: next,
-                            child: const Text('NEXT LESSON →'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      );
+    }
+
+    return PopScope(
+      canPop: !_isFullscreen,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _isFullscreen) {
+          unawaited(_setFullscreen(false));
+        }
+      },
+      child: content,
     );
   }
 }

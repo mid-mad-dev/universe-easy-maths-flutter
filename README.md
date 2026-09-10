@@ -19,6 +19,10 @@ flutter build apk --release
 
 The APK is written to `build/app/outputs/flutter-apk/app-release.apk`.
 
+The latest public Android release is available at:
+
+`https://github.com/mid-mad-dev/universe-easy-maths-flutter/releases/latest/download/app-release.apk`
+
 ## Supabase setup
 
 Run the SQL files in `supabase/` in order for a new project. For an existing project, also run `supabase/03_questions_permissions.sql` to restore doubt operation privileges.
