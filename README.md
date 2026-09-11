@@ -11,13 +11,34 @@ Flutter learning app with courses, lessons, progress tracking, payments, and a S
 
 The real `assets/env.json` is intentionally ignored so it is not published with the source. The app can also be configured on-device from the first-run screen.
 
-## Build an APK
+## Build signed Android releases
+
+Release builds require a private upload keystore. The repository intentionally does not
+contain signing credentials or a keystore.
+
+1. Install a JDK with `keytool` available.
+2. Generate or obtain your private upload keystore.
+3. Copy `android/key.properties.example` to `android/key.properties`.
+4. Set the keystore alias, passwords, and `storeFile` path in `android/key.properties`.
+5. Keep both `android/key.properties` and the keystore backed up privately.
+
+Build the Play Store bundle and a sideloadable signed APK:
 
 ```powershell
+flutter build appbundle --release
 flutter build apk --release
 ```
 
-The APK is written to `build/app/outputs/flutter-apk/app-release.apk`.
+Artifacts:
+
+- `build/app/outputs/bundle/release/app-release.aab`
+- `build/app/outputs/flutter-apk/app-release.apk`
+
+Use a JDK 17+ runtime when invoking Gradle directly. Flutter can use the Android
+Studio JDK automatically, or set `JAVA_HOME` to that JDK before building.
+
+The release checklist and remaining professional polish items are tracked in
+[docs/production-readiness.md](docs/production-readiness.md).
 
 The latest public Android release is available at:
 
