@@ -44,6 +44,13 @@ The latest public Android release is available at:
 
 `https://github.com/mid-mad-dev/universe-easy-maths-flutter/releases/latest/download/app-release.apk`
 
+## Updating an installed Android app
+
+A previously downloaded APK cannot receive a remote code update from GitHub by itself.
+For this project, publish each signed APK/AAB with a higher Android build number. Users
+can install the latest APK from the link above, or receive updates automatically after
+the AAB is enrolled in Google Play App Signing and published through Google Play.
+
 ## Supabase setup
 
 Run the SQL files in `supabase/` in order for a new project. For an existing project, also run `supabase/03_questions_permissions.sql` to restore doubt operation privileges.

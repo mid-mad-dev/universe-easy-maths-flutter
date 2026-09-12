@@ -1,6 +1,9 @@
 # Production readiness review
 
-Reviewed against the deployed GitHub Pages site, the signed Android build, and the Android emulator on 2026-09-11.
+Reviewed against the deployed GitHub Pages site, the signed Android build, and the Android emulator on 2026-09-12.
+
+The build 12 maintenance pass added bounded home loading, safer upload validation, and
+explicit admin database error handling without changing the existing theme or content.
 
 ## Release gate completed
 
@@ -12,7 +15,7 @@ Reviewed against the deployed GitHub Pages site, the signed Android build, and t
 - `flutter build apk --release` succeeds.
 - APK verification passes Android APK Signature Scheme v2.
 - AAB verification reports `jar verified` and the expected Universe Easy Maths certificate.
-- The APK installs on the `uem` Android emulator, launches the main activity, and reports version `1.0.0` / build `11`.
+- The APK installs on the `uem` Android emulator, launches the main activity, and reports version `1.0.0` / build `12`.
 - The emulator smoke test reached the welcome screen and signup screen without an app crash or fatal exception.
 - The deployed web splash, landing screen, and signup route render without console errors or failed network requests.
 
@@ -37,13 +40,9 @@ Reviewed against the deployed GitHub Pages site, the signed Android build, and t
    The current `PushService` intentionally degrades to no push when `google-services.json` is absent. Add the Android/iOS Firebase app configuration and test foreground, background, sign-out, and token-refresh flows.
 3. **Tighten function CORS.**
    `get-lesson-url` and `manage-user` currently allow `Access-Control-Allow-Origin: *`. Restrict browser calls to the deployed web origin if these functions are not intended for arbitrary web origins.
-4. **Propagate database errors in admin operations.**
-   `manage-user` should check each profile update and cleanup query and return a safe failure instead of reporting success after a partial operation.
-5. **Bound home data loading.**
-   `HomeScreenContent.load()` has no timeout. Match the lesson/startup timeout pattern so a stalled network request reaches the retry state deterministically.
-6. **Stream large uploads.**
-   `StorageService.uploadXFile()` reads the complete file into memory. Large lesson videos should use a bounded or resumable upload strategy to avoid mobile memory pressure.
-7. **Improve automated coverage.**
+4. **Stream large uploads.**
+   `StorageService.uploadXFile()` still reads the complete file into memory after enforcing a 200 MB limit. Large lesson videos should use a bounded or resumable upload strategy for lower mobile memory pressure.
+5. **Improve automated coverage.**
    Add integration tests for first-run persistence, auth redirects, signed lesson URL failures, payment failure states, and notification permission/token handling.
 
 ## Known environment notes

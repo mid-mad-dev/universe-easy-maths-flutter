@@ -6,6 +6,11 @@ import '../core/app_constants.dart';
 class StorageService {
   SupabaseClient get supabase => Supabase.instance.client;
 
+  // Keep the binary upload path safe on mobile. Large lesson uploads should
+  // eventually move to resumable storage, but rejecting oversized files here
+  // prevents an avoidable out-of-memory crash while preserving web support.
+  static const _maxUploadBytes = 200 * 1024 * 1024;
+
   static const _contentTypes = <String, String>{
     'mp4': 'video/mp4',
     'mov': 'video/quicktime',
@@ -31,34 +36,52 @@ class StorageService {
     required String folder,
     required XFile file,
   }) async {
+    final size = await file.length();
+    if (size <= 0) {
+      throw Exception('The selected file is empty. Choose another file.');
+    }
+    if (size > _maxUploadBytes) {
+      throw Exception('Choose a file smaller than 200 MB.');
+    }
+
     final bytes = await file.readAsBytes();
-    final ext = file.name.contains('.')
+    final rawExtension = file.name.contains('.')
         ? file.name.split('.').last.toLowerCase()
         : 'bin';
+    final ext = rawExtension.replaceAll(RegExp(r'[^a-z0-9]'), '');
+    final safeExtension = ext.isEmpty ? 'bin' : ext;
     final id = DateTime.now().microsecondsSinceEpoch;
-    final path = '$folder/$id.$ext';
+    final path = '$folder/$id.$safeExtension';
     await supabase.storage
         .from(bucket)
         .uploadBinary(
           path,
           bytes,
           fileOptions: FileOptions(
-            contentType: _contentTypeFor(ext),
+            contentType: _contentTypeFor(safeExtension),
             upsert: false,
           ),
         );
     return path;
   }
 
+  String _requireUserId() {
+    final id = supabase.auth.currentUser?.id;
+    if (id == null || id.isEmpty) {
+      throw Exception('Please sign in before uploading a file.');
+    }
+    return id;
+  }
+
   Future<String> uploadProfilePhoto(XFile file) => uploadXFile(
     bucket: AppConstants.profileBucket,
-    folder: supabase.auth.currentUser!.id,
+    folder: _requireUserId(),
     file: file,
   );
 
   Future<String> uploadDoubtImage(XFile file) => uploadXFile(
     bucket: AppConstants.doubtBucket,
-    folder: supabase.auth.currentUser!.id,
+    folder: _requireUserId(),
     file: file,
   );
 

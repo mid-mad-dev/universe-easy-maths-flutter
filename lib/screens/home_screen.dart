@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/app_colors.dart';
@@ -41,10 +43,22 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
   }
 
   Future<void> load() async {
+    if (mounted) {
+      setState(() {
+        loading = true;
+        error = null;
+      });
+    }
     try {
-      final profile = await db.getMyProfile();
-      final chapterData = await db.getChapters();
-      final p = await progress.getOverallProgress();
+      final profile = await db.getMyProfile().timeout(
+        const Duration(seconds: 15),
+      );
+      final chapterData = await db.getChapters().timeout(
+        const Duration(seconds: 15),
+      );
+      final p = await progress.getOverallProgress().timeout(
+        const Duration(seconds: 15),
+      );
       if (!mounted) return;
       setState(() {
         name = profile?.name.trim().isNotEmpty == true
@@ -59,7 +73,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       if (!mounted) return;
       setState(() {
         loading = false;
-        error = 'Could not load home: $e';
+        error = e is TimeoutException
+            ? 'The home screen took too long to load. Check your connection and retry.'
+            : 'Could not load your learning data. Check your connection and retry.';
       });
     }
   }

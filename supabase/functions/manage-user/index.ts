@@ -58,13 +58,25 @@ Deno.serve(async (req) => {
     if (!owner) return json({ error: 'Owner permission required.' }, 403);
     if (userId === callerData.user.id) return json({ error: 'The Owner cannot change their own role.' }, 400);
 
+    const { data: targetProfile, error: targetError } = await admin
+      .from('profiles')
+      .select('id,role')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (targetError) return json({ error: targetError.message }, 500);
+    if (!targetProfile) return json({ error: 'User not found.' }, 404);
+    if (targetProfile.role === 'owner') {
+      return json({ error: 'Owner accounts cannot be changed here.' }, 403);
+    }
+
     const newRole = action === 'set_admin' ? 'admin' : 'student';
-    await admin
+    const { error: updateError } = await admin
       .from('profiles')
       .update({ role: newRole, is_admin: newRole === 'admin' })
-      .eq('id', userId)
-      .neq('role', 'owner');
+      .eq('id', userId);
 
+    if (updateError) return json({ error: updateError.message }, 500);
     return json({ success: true });
   }
 
@@ -78,10 +90,17 @@ Deno.serve(async (req) => {
     if (!target) return json({ error: 'User not found.' }, 404);
     if (target.role !== 'student') return json({ error: 'Only student accounts can be removed here.' }, 400);
 
-    await admin.from('notifications').delete().eq('user_id', userId);
-    await admin.from('purchases').delete().eq('user_id', userId);
-    await admin.from('progress').delete().eq('user_id', userId);
-    await admin.from('questions').delete().eq('user_id', userId);
+    for (const table of ['notifications', 'purchases', 'progress', 'questions']) {
+      const { error: cleanupError } = await admin
+        .from(table)
+        .delete()
+        .eq('user_id', userId);
+      if (cleanupError) {
+        return json({
+          error: `Could not clean up ${table}: ${cleanupError.message}`,
+        }, 500);
+      }
+    }
 
     const { error } = await admin.auth.admin.deleteUser(userId);
     if (error) return json({ error: error.message }, 500);
